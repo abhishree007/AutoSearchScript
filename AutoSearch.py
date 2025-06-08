@@ -8,51 +8,52 @@ import time
 import sys
 
 def main():
-    # Set the path to your Edge WebDriver executable (e.g., msedgedriver)
-    # Update this path as needed for your setup
-    webdriver_path = "C:\\Users\\abhis\\Downloads\\edgedriver_win64\\msedgedriver.exe"  # Assumes msedgedriver is in your PATH
+    webdriver_path = "C:\\Users\\abhis\\Downloads\\edgedriver_win64\\msedgedriver.exe"
 
-    # Initialize Edge driver
+    # Optional: prevent "Automation Controlled" warning
+    options = webdriver.EdgeOptions()
+    options.add_experimental_option("excludeSwitches", ["enable-automation"])
+    options.add_experimental_option('useAutomationExtension', False)
+
     service = EdgeService(executable_path=webdriver_path)
-    driver = webdriver.Edge(service=service)
+    driver = webdriver.Edge(service=service, options=options)
 
     try:
-        # Open Google
         driver.get("https://www.google.com")
+        wait = WebDriverWait(driver, 5)
 
-        wait = WebDriverWait(driver,5)
-
-        # Accept cookies if the consent form appears (Google may show it sometimes)
+        # Handle Google cookies (if shown)
         try:
             consent_button = wait.until(EC.element_to_be_clickable(
                 (By.XPATH, "//button[contains(text(),'I agree')] | //button[contains(text(),'Accept all')]")))
             consent_button.click()
         except:
-            # Consent form not present, continue
             pass
 
-        # Wait for the search bar to be visible
+        # Wait for the search box
         search_box = wait.until(EC.visibility_of_element_located((By.NAME, "q")))
 
-        # Enter "hello world" and submit the search form
+        # Type and search
         search_box.clear()
         search_box.send_keys("hello world")
         search_box.send_keys(Keys.RETURN)
 
-        # Wait for the search results page to load by waiting for results div
-        wait.until(EC.presence_of_element_located((By.ID, "search")))
+        # Wait for result container or CAPTCHA
+        try:
+            wait.until(EC.presence_of_element_located((By.ID, "search")))
+            print("Search results loaded.")
+        except:
+            # Check for CAPTCHA and wait
+            print("Possible CAPTCHA detected. Please solve it manually.")
+            input("Press Enter after solving CAPTCHA...")
 
-        print("Search complete for 'hello world'.")
-
-        # Optional: wait a few seconds so user can see result before browser closes
-        time.sleep(5)
+        print("Done. Browser will remain open for inspection.")
 
     except Exception as e:
         print(f"Error occurred: {e}", file=sys.stderr)
 
-    finally:
-        driver.quit()
+    # Do NOT call driver.quit() – leave browser open
+    # You can manually close the browser after inspection
 
 if __name__ == "__main__":
     main()
-
